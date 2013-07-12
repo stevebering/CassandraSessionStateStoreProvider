@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Web;
@@ -103,6 +104,16 @@ namespace Cassandra.AspNet.SessionState
             // initialize our options
             var options = ClusterOptions.Default;
 
+            // determine which keyspace we are configured to live in...
+            var keyspaceSetting = config["keyspace"];
+            if (keyspaceSetting != null) {
+                if (string.IsNullOrEmpty(keyspaceSetting)) {
+                    throw new ConfigurationErrorsException("keyspace cannot be empty. Default is SessionState");
+                }
+
+                options.Keyspace = keyspaceSetting;
+            }
+
             // determine which hosts we will be using as contact points
             var contactPointsSetting = config["contactPoints"];
             if (contactPointsSetting != null) {
@@ -204,10 +215,9 @@ namespace Cassandra.AspNet.SessionState
             }
         }
 
-        private ContextTable<UserSession> GetUserSessionsTable() {
+        private ContextTable<UserSession> GetUserSessions() {
             var t = _context.GetTable<UserSession>();
             t.CreateIfNotExists();
-            _context.Attach(t, EntityUpdateMode.ModifiedOnly, EntityTrackingMode.KeepAttachedAfterSave);
             return t;
         }
 
@@ -227,35 +237,36 @@ namespace Cassandra.AspNet.SessionState
                                    id, lockId, newItem);
 
                 var serializedItems = Serialize((SessionStateItemCollection)item.Items);
-                var table = GetUserSessionsTable();
+                var userSessions = GetUserSessions();
 
-                UserSession userSession;
+                UserSession sessionState;
 
                 if (newItem) {
-                    userSession = table.FirstOrDefault(x => x.SessionId == id &&
+                    sessionState = userSessions.FirstOrDefault(x => x.SessionId == id &&
                                                             x.ApplicationName == ApplicationName &&
                                                             x.Expires < DateTime.UtcNow)
                                                             .Execute();
-                    if (userSession != null) {
+                    if (sessionState != null) {
                         throw new InvalidOperationException(
                             string.Format("Item already exists with SessionId: {0} and ApplicationName: {1}.", id,
                                           this.ApplicationName));
                     }
 
-                    userSession = new UserSession(id, ApplicationName);
-                    table.AddNew(userSession, EntityTrackingMode.KeepAttachedAfterSave);
+                    sessionState = new UserSession(id, ApplicationName);
+                    userSessions.AddNew(sessionState, EntityTrackingMode.KeepAttachedAfterSave);
                 }
                 else {
-                    userSession = table.FirstOrDefault(x => x.SessionId == id &&
+                    sessionState = userSessions.FirstOrDefault(x => x.SessionId == id &&
                                                             x.ApplicationName == ApplicationName &&
                                                             x.LockId == (int)lockId)
                                                             .Execute();
+                    userSessions.Attach(sessionState, EntityUpdateMode.ModifiedOnly, EntityTrackingMode.KeepAttachedAfterSave);
                 }
 
                 var expires = DateTime.UtcNow.AddMinutes(_timeout.TotalMinutes);
-                userSession.Expires = expires;
-                userSession.SessionItems = serializedItems;
-                userSession.Locked = false;
+                sessionState.Expires = expires;
+                sessionState.SessionItems = serializedItems;
+                sessionState.Locked = false;
 
                 _context.SaveChanges(SaveChangesMode.OneByOne);
 
@@ -280,9 +291,9 @@ namespace Cassandra.AspNet.SessionState
             try {
                 Logger.DebugFormat("Beginning ReleaseItemExclusive. SessionId: {0}, LockId: {1}.", id, lockId);
 
-                var table = GetUserSessionsTable();
+                var userSessions = GetUserSessions();
 
-                var sessionState = table.FirstOrDefault(x => x.SessionId == id &&
+                var sessionState = userSessions.FirstOrDefault(x => x.SessionId == id &&
                                                              x.ApplicationName == ApplicationName &&
                                                              x.LockId == (int)lockId)
                                                              .Execute();
@@ -294,6 +305,7 @@ namespace Cassandra.AspNet.SessionState
                     return;
                 }
 
+                userSessions.Attach(sessionState, EntityUpdateMode.ModifiedOnly, EntityTrackingMode.KeepAttachedAfterSave);
                 sessionState.Locked = false;
 
                 var expires = DateTime.UtcNow.AddMinutes(_timeout.TotalMinutes);
@@ -323,14 +335,14 @@ namespace Cassandra.AspNet.SessionState
             try {
                 Logger.DebugFormat("Beginning RemoveItem. SessionId: {0}, LockId: {1}.", id, lockId);
 
-                var table = GetUserSessionsTable();
-                var sessionState = table.FirstOrDefault(x => x.SessionId == id &&
+                var userSessions = GetUserSessions();
+                var sessionState = userSessions.FirstOrDefault(x => x.SessionId == id &&
                                                              x.ApplicationName == ApplicationName &&
                                                              x.LockId == (int)lockId)
                                                              .Execute();
 
                 if (sessionState != null) {
-                    table.Delete(sessionState);
+                    userSessions.Delete(sessionState);
                     _context.SaveChanges(SaveChangesMode.OneByOne);
                 }
 
@@ -351,15 +363,17 @@ namespace Cassandra.AspNet.SessionState
             try {
                 Logger.DebugFormat("Beginning ResetItemTimeout. SessionId: {0}.", id);
 
-                var table = GetUserSessionsTable();
-                var sessionState = table.FirstOrDefault(x => x.SessionId == id &&
+                var userSessions = GetUserSessions();
+                var sessionState = userSessions.FirstOrDefault(x => x.SessionId == id &&
                                                              x.ApplicationName == ApplicationName)
                                                              .Execute();
 
                 if (sessionState != null) {
+                    userSessions.Attach(sessionState, EntityUpdateMode.ModifiedOnly,
+                                        EntityTrackingMode.KeepAttachedAfterSave);
                     var expiry = DateTime.UtcNow.AddMinutes(_timeout.TotalMinutes);
                     sessionState.Expires = expiry;
-                    _context.SaveChanges();
+                    _context.SaveChanges(SaveChangesMode.OneByOne);
                 }
 
                 Logger.DebugFormat("Completed ResetItemTimeout. SessionId: {0}.", id);
@@ -386,8 +400,8 @@ namespace Cassandra.AspNet.SessionState
                     Expires = expiry
                 };
 
-                var table = GetUserSessionsTable();
-                table.AddNew(sessionState, EntityTrackingMode.KeepAttachedAfterSave);
+                var userSessions = GetUserSessions();
+                userSessions.AddNew(sessionState, EntityTrackingMode.KeepAttachedAfterSave);
                 _context.SaveChanges(SaveChangesMode.OneByOne);
 
                 Logger.DebugFormat("Completed CreateUninitializedItem. SessionId: {0}, Timeout: {1}.", id, timeout);
@@ -453,8 +467,8 @@ namespace Cassandra.AspNet.SessionState
 
             Logger.DebugFormat("Retrieving item from Cassandra. SessionId: {0}; ApplicationName: {1}.", id, ApplicationName);
 
-            var table = _context.GetTable<UserSession>();
-            var sessionState = table.FirstOrDefault(x => x.SessionId == id &&
+            var userSessions = _context.GetTable<UserSession>();
+            var sessionState = userSessions.FirstOrDefault(x => x.SessionId == id &&
                                                          x.ApplicationName == ApplicationName)
                                                          .Execute();
 
@@ -479,13 +493,15 @@ namespace Cassandra.AspNet.SessionState
                 Logger.DebugFormat("Item retrieved has expired. SessionId: {0}; ApplicationName: {1}; Expiry (UTC): {2}",
                     id, ApplicationName, sessionState.Expires);
 
-                table.Delete(sessionState);
+                userSessions.Delete(sessionState);
                 _context.SaveChanges(SaveChangesMode.OneByOne);
 
                 return null;
             }
 
             if (lockRecord) {
+                // attach our item to the context for change tracking...
+                userSessions.Attach(sessionState, EntityUpdateMode.ModifiedOnly, EntityTrackingMode.KeepAttachedAfterSave);
                 sessionState.Locked = true;
                 sessionState.LockId += 1;
                 sessionState.LockDate = DateTime.UtcNow;
