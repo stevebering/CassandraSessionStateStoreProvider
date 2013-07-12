@@ -27,6 +27,11 @@ Configuration
       </system.web>
     </configuration>
 
+**keyspace**: The keyspace in which our "sessions" column family will be created. Default is *SessionState*.  
+**contactPoints**: A comma-delimited list of one or more hostnames or IP addresses of Cassandra contact points. *Required*.  
+**useCompression**: Turn on/off data compression on keyspace. Default is *true*.  
+**disableBuffering**: Turn on/off request buffering. Default is *true*.  
+
 Notes
 =====
 
