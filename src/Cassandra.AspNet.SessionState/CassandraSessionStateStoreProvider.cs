@@ -250,7 +250,7 @@ namespace Cassandra.AspNet.SessionState
                 userSession.SessionItems = serializedItems;
                 userSession.Locked = false;
 
-                _context.SaveChanges(SaveChangesMode.Batch);
+                _context.SaveChanges(SaveChangesMode.OneByOne);
 
                 Logger.DebugFormat("Completed SetAndReleaseItemExclusive. SessionId: {0}, LockId: {1}, newItem: {2}.",
                                    id, lockId, newItem);
@@ -279,12 +279,19 @@ namespace Cassandra.AspNet.SessionState
                                                              x.LockId == (int)lockId)
                                                              .Execute();
 
+                if (sessionState == null) {
+                    Logger.DebugFormat(
+                        "Unable to locate locked item. SessionId: {0}, ApplicationName: {1}, LockId: {2}.", id,
+                        ApplicationName, lockId);
+                    return;
+                }
+
                 sessionState.Locked = false;
 
                 var expires = DateTime.UtcNow.AddMinutes(_timeout.TotalMinutes);
                 sessionState.Expires = expires;
 
-                _context.SaveChanges(SaveChangesMode.Batch);
+                _context.SaveChanges(SaveChangesMode.OneByOne);
 
                 Logger.DebugFormat("Completed ReleaseItemExclusive. SessionId: {0}, LockId: {1}", id, lockId);
             }
@@ -316,7 +323,7 @@ namespace Cassandra.AspNet.SessionState
 
                 if (sessionState != null) {
                     table.Delete(sessionState);
-                    _context.SaveChanges(SaveChangesMode.Batch);
+                    _context.SaveChanges(SaveChangesMode.OneByOne);
                 }
 
                 Logger.DebugFormat("Completed RemoveItem. SessionId: {0}, LockId: {1}.", id, lockId);
@@ -373,7 +380,7 @@ namespace Cassandra.AspNet.SessionState
 
                 var table = _context.GetTable<UserSession>();
                 table.AddNew(sessionState, EntityTrackingMode.KeepAttachedAfterSave);
-                _context.SaveChanges(SaveChangesMode.Batch);
+                _context.SaveChanges(SaveChangesMode.OneByOne);
 
                 Logger.DebugFormat("Completed CreateUninitializedItem. SessionId: {0}, Timeout: {1}.", id, timeout);
 
@@ -465,7 +472,7 @@ namespace Cassandra.AspNet.SessionState
                     id, ApplicationName, sessionState.Expires);
 
                 table.Delete(sessionState);
-                _context.SaveChanges(SaveChangesMode.Batch);
+                _context.SaveChanges(SaveChangesMode.OneByOne);
 
                 return null;
             }
@@ -475,7 +482,7 @@ namespace Cassandra.AspNet.SessionState
                 sessionState.LockId += 1;
                 sessionState.LockDate = DateTime.UtcNow;
 
-                _context.SaveChanges(SaveChangesMode.Batch);
+                _context.SaveChanges(SaveChangesMode.OneByOne);
             }
 
             lockId = sessionState.LockId;
