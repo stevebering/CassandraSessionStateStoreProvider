@@ -243,9 +243,9 @@ namespace Cassandra.AspNet.SessionState
 
                 if (newItem) {
                     sessionState = userSessions.FirstOrDefault(x => x.SessionId == id &&
-                                                            x.ApplicationName == ApplicationName &&
-                                                            x.Expires < DateTime.UtcNow)
-                                                            .Execute();
+                                                                    x.ApplicationName == ApplicationName &&
+                                                                    x.Expires < DateTime.UtcNow)
+                                               .Execute();
                     if (sessionState != null) {
                         throw new InvalidOperationException(
                             string.Format("Item already exists with SessionId: {0} and ApplicationName: {1}.", id,
@@ -257,9 +257,9 @@ namespace Cassandra.AspNet.SessionState
                 }
                 else {
                     sessionState = userSessions.FirstOrDefault(x => x.SessionId == id &&
-                                                            x.ApplicationName == ApplicationName &&
-                                                            x.LockId == (int)lockId)
-                                                            .Execute();
+                                                                    x.ApplicationName == ApplicationName &&
+                                                                    x.LockId == (int)lockId)
+                                               .Execute();
                     userSessions.Attach(sessionState, EntityUpdateMode.ModifiedOnly, EntityTrackingMode.KeepAttachedAfterSave);
                 }
 
@@ -294,9 +294,9 @@ namespace Cassandra.AspNet.SessionState
                 var userSessions = GetUserSessions();
 
                 var sessionState = userSessions.FirstOrDefault(x => x.SessionId == id &&
-                                                             x.ApplicationName == ApplicationName &&
-                                                             x.LockId == (int)lockId)
-                                                             .Execute();
+                                                                    x.ApplicationName == ApplicationName &&
+                                                                    x.LockId == (int)lockId)
+                                               .Execute();
 
                 if (sessionState == null) {
                     Logger.DebugFormat(
@@ -337,9 +337,9 @@ namespace Cassandra.AspNet.SessionState
 
                 var userSessions = GetUserSessions();
                 var sessionState = userSessions.FirstOrDefault(x => x.SessionId == id &&
-                                                             x.ApplicationName == ApplicationName &&
-                                                             x.LockId == (int)lockId)
-                                                             .Execute();
+                                                                    x.ApplicationName == ApplicationName &&
+                                                                    x.LockId == (int)lockId)
+                                               .Execute();
 
                 if (sessionState != null) {
                     userSessions.Delete(sessionState);
@@ -365,8 +365,8 @@ namespace Cassandra.AspNet.SessionState
 
                 var userSessions = GetUserSessions();
                 var sessionState = userSessions.FirstOrDefault(x => x.SessionId == id &&
-                                                             x.ApplicationName == ApplicationName)
-                                                             .Execute();
+                                                                    x.ApplicationName == ApplicationName)
+                                               .Execute();
 
                 if (sessionState != null) {
                     userSessions.Attach(sessionState, EntityUpdateMode.ModifiedOnly,
@@ -469,8 +469,8 @@ namespace Cassandra.AspNet.SessionState
 
             var userSessions = _context.GetTable<UserSession>();
             var sessionState = userSessions.FirstOrDefault(x => x.SessionId == id &&
-                                                         x.ApplicationName == ApplicationName)
-                                                         .Execute();
+                                                                x.ApplicationName == ApplicationName)
+                                           .Execute();
 
             if (sessionState == null) {
                 Logger.DebugFormat("Item not found in Cassandra with SessionId: {0}; ApplicationName: {1}.", id, ApplicationName);
