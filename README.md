@@ -18,6 +18,7 @@ Configuration
             <add name="CassandraSessionStateStore" 
                  type="Cassandra.AspNet.SessionState.CassandraSessionStateStoreProvider" 
                  description="Cassandra Session State Store Provider"
+                 keyspace="SessionState"
                  contactPoints="127.0.0.1,127.0.0.2"
                  useCompression="true"
                  disableBuffering="true" />                 
