@@ -10,6 +10,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{DA9E15
 		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CassandraSessionStateSample", "..\sample\CassandraSessionStateSample\CassandraSessionStateSample.csproj", "{D71E961F-0770-4EA5-B60E-AFDF1D607E5E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,6 +22,10 @@ Global
 		{C9076432-E415-4C7D-BDCF-CF4A50E4DBFD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C9076432-E415-4C7D-BDCF-CF4A50E4DBFD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C9076432-E415-4C7D-BDCF-CF4A50E4DBFD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D71E961F-0770-4EA5-B60E-AFDF1D607E5E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D71E961F-0770-4EA5-B60E-AFDF1D607E5E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D71E961F-0770-4EA5-B60E-AFDF1D607E5E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D71E961F-0770-4EA5-B60E-AFDF1D607E5E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
