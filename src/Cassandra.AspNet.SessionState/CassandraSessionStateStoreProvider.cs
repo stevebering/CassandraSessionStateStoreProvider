@@ -204,6 +204,13 @@ namespace Cassandra.AspNet.SessionState
             }
         }
 
+        private ContextTable<UserSession> GetUserSessionsTable() {
+            var t = _context.GetTable<UserSession>();
+            t.CreateIfNotExists();
+            _context.Attach(t, EntityUpdateMode.ModifiedOnly, EntityTrackingMode.KeepAttachedAfterSave);
+            return t;
+        }
+
         /// <summary>
         /// If the newItem parameter is true, the SetAndReleaseItemExclusive method inserts a new item into the data store with the supplied values. 
         /// Otherwise, the existing item in the data store is updated with the supplied values, and any lock on the data is released. 
@@ -220,7 +227,7 @@ namespace Cassandra.AspNet.SessionState
                                    id, lockId, newItem);
 
                 var serializedItems = Serialize((SessionStateItemCollection)item.Items);
-                var table = _context.GetTable<UserSession>();
+                var table = GetUserSessionsTable();
 
                 UserSession userSession;
 
@@ -273,7 +280,8 @@ namespace Cassandra.AspNet.SessionState
             try {
                 Logger.DebugFormat("Beginning ReleaseItemExclusive. SessionId: {0}, LockId: {1}.", id, lockId);
 
-                var table = _context.GetTable<UserSession>();
+                var table = GetUserSessionsTable();
+
                 var sessionState = table.FirstOrDefault(x => x.SessionId == id &&
                                                              x.ApplicationName == ApplicationName &&
                                                              x.LockId == (int)lockId)
@@ -308,7 +316,7 @@ namespace Cassandra.AspNet.SessionState
             try {
                 Logger.DebugFormat("Beginning RemoveItem. SessionId: {0}, LockId: {1}.", id, lockId);
 
-                var table = _context.GetTable<UserSession>();
+                var table = GetUserSessionsTable();
                 var sessionState = table.FirstOrDefault(x => x.SessionId == id &&
                                                              x.ApplicationName == ApplicationName &&
                                                              x.LockId == (int)lockId)
@@ -336,7 +344,7 @@ namespace Cassandra.AspNet.SessionState
             try {
                 Logger.DebugFormat("Beginning ResetItemTimeout. SessionId: {0}.", id);
 
-                var table = _context.GetTable<UserSession>();
+                var table = GetUserSessionsTable();
                 var sessionState = table.FirstOrDefault(x => x.SessionId == id &&
                                                              x.ApplicationName == ApplicationName)
                                                              .Execute();
@@ -371,7 +379,7 @@ namespace Cassandra.AspNet.SessionState
                     Expires = expiry
                 };
 
-                var table = _context.GetTable<UserSession>();
+                var table = GetUserSessionsTable();
                 table.AddNew(sessionState, EntityTrackingMode.KeepAttachedAfterSave);
                 _context.SaveChanges(SaveChangesMode.Batch);
 
