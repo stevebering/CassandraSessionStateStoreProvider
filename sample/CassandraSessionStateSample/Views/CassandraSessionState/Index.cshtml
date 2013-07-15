@@ -1,0 +1,11 @@
+﻿@{
+    ViewBag.Title = "Cassandra SessionState Sample";
+}
+
+<p>The current value: @(ViewBag.Value)</p>
+
+@using (Html.BeginForm("SetValue", "CassandraSessionState")) {
+    @Html.TextBox("value");
+    
+    <button type="submit">Set Value</button>
+}
